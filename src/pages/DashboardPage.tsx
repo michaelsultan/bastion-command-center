@@ -22,6 +22,7 @@ import { TempsReelBadge } from '@/components/TempsReelBadge'
 import { ThreatBanner } from '@/components/ThreatBanner'
 import { useEffectiveTenant } from '@/context/CrisisContext'
 import { useLiveAlerts } from '@/context/LiveAlertsContext'
+import { useLanguage } from '@/i18n/LanguageContext'
 import { formatNumber } from '@/data'
 import type { CampaignEvent } from '@/data/types'
 
@@ -47,6 +48,7 @@ function SentimentTooltip({ active, payload, label }: { active?: boolean; payloa
 
 export default function DashboardPage() {
   const tenant = useEffectiveTenant()
+  const { lang, t } = useLanguage()
   const { kpis } = tenant
   const { alertsForTenant, countsForTenant } = useLiveAlerts()
   const liveAlerts = alertsForTenant(tenant.meta.id)
@@ -77,8 +79,8 @@ export default function DashboardPage() {
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <PageHeader
-        title="Vue d’ensemble"
-        description={`${tenant.meta.name} — ${tenant.meta.detail}. Synthèse du poste de commandement au 19 juillet 2026.`}
+        title={t('dash.title')}
+        description={t('dash.desc', { name: tenant.meta.name, detail: tenant.meta.detail })}
       />
 
       <ThreatBanner level={tenant.threat.level} summary={tenant.threat.summary} updatedAt={tenant.threat.updatedAt} />
@@ -86,37 +88,37 @@ export default function DashboardPage() {
       {/* KPI */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
-          title="Score sécurité global"
+          title={t('dash.kpi.score')}
           value={`${kpis.securityScore}/100`}
           icon={Gauge}
           delta={kpis.securityScoreDelta}
-          deltaLabel="vs sem. dernière"
+          deltaLabel={t('dash.kpi.vsWeek')}
           invertDelta={false}
         >
           <Progress value={kpis.securityScore} className="mt-3 h-1.5 bg-zinc-800 [&>div]:bg-sky-400" />
         </StatCard>
         <StatCard
-          title="Mentions (24 h)"
-          value={formatNumber(kpis.mentions24h)}
+          title={t('dash.kpi.mentions')}
+          value={formatNumber(kpis.mentions24h, lang)}
           icon={Activity}
           delta={kpis.mentionsDelta}
           deltaSuffix=" %"
-          deltaLabel="vs veille"
+          deltaLabel={t('dash.kpi.vsYesterday')}
           invertDelta
         />
         <StatCard
-          title="Sentiment net"
+          title={t('dash.kpi.sentiment')}
           value={`${kpis.netSentiment > 0 ? '+' : ''}${kpis.netSentiment} %`}
           icon={HeartPulse}
           delta={kpis.netSentimentDelta}
           deltaSuffix=" pts"
-          deltaLabel="sur 7 jours"
+          deltaLabel={t('dash.kpi.on7d')}
         />
         <StatCard
-          title="Alertes actives"
+          title={t('dash.kpi.alerts')}
           value={String(activeTotal)}
           icon={BellRing}
-          deltaLabel={criticalTotal > 0 ? `dont ${criticalTotal} critique${criticalTotal > 1 ? 's' : ''}` : 'aucune critique'}
+          deltaLabel={criticalTotal > 0 ? t('dash.kpi.criticalOf', { count: criticalTotal }) : t('dash.kpi.noCritical')}
         >
           {criticalTotal > 0 && <span className="mt-2 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-red-500" />}
         </StatCard>
@@ -126,8 +128,8 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
         <Card className="bg-zinc-900/70 xl:col-span-2">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-zinc-200">Évolution du sentiment — 7 derniers jours</CardTitle>
-            <p className="text-xs text-zinc-500">Part des mentions par tonalité (%)</p>
+            <CardTitle className="text-sm font-medium text-zinc-200">{t('dash.chart.title')}</CardTitle>
+            <p className="text-xs text-zinc-500">{t('dash.chart.sub')}</p>
           </CardHeader>
           <CardContent className="h-72">
             <ResponsiveContainer width="100%" height="100%">
@@ -150,9 +152,9 @@ export default function DashboardPage() {
                 <XAxis dataKey="date" tick={{ fill: '#a1a1aa', fontSize: 12 }} axisLine={{ stroke: '#3f3f46' }} tickLine={false} />
                 <YAxis tick={{ fill: '#a1a1aa', fontSize: 12 }} axisLine={false} tickLine={false} domain={[0, 100]} />
                 <Tooltip content={<SentimentTooltip />} />
-                <Area type="monotone" dataKey="positif" name="Positif" stackId="1" stroke="#10b981" fill="url(#gPos)" strokeWidth={2} />
-                <Area type="monotone" dataKey="neutre" name="Neutre" stackId="1" stroke="#71717a" fill="url(#gNeu)" strokeWidth={2} />
-                <Area type="monotone" dataKey="negatif" name="Négatif" stackId="1" stroke="#ef4444" fill="url(#gNeg)" strokeWidth={2} />
+                <Area type="monotone" dataKey="positif" name={t('sentiment.positif')} stackId="1" stroke="#10b981" fill="url(#gPos)" strokeWidth={2} />
+                <Area type="monotone" dataKey="neutre" name={t('sentiment.neutre')} stackId="1" stroke="#71717a" fill="url(#gNeu)" strokeWidth={2} />
+                <Area type="monotone" dataKey="negatif" name={t('sentiment.negatif')} stackId="1" stroke="#ef4444" fill="url(#gNeg)" strokeWidth={2} />
               </AreaChart>
             </ResponsiveContainer>
           </CardContent>
@@ -161,9 +163,9 @@ export default function DashboardPage() {
         <Card className="bg-zinc-900/70">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium text-zinc-200">Flux d’alertes en direct</CardTitle>
+              <CardTitle className="text-sm font-medium text-zinc-200">{t('dash.feed.title')}</CardTitle>
               <Link to="/alertes" className="flex items-center gap-1 text-xs text-sky-400 hover:text-sky-300">
-                Tout voir <ArrowRight className="h-3 w-3" />
+                {t('common.viewAll')} <ArrowRight className="h-3 w-3" />
               </Link>
             </div>
           </CardHeader>
@@ -192,19 +194,19 @@ export default function DashboardPage() {
           <CardHeader className="pb-2">
             <div className="flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-sky-400" />
-              <CardTitle className="text-sm font-medium text-zinc-200">Brief quotidien IA — {tenant.brief.dateLabel}</CardTitle>
+              <CardTitle className="text-sm font-medium text-zinc-200">{t('dash.brief.title', { date: tenant.brief.dateLabel })}</CardTitle>
             </div>
-            <p className="text-xs text-zinc-500">Généré le {tenant.brief.generatedAt} · moteur d’analyse Bastion</p>
+            <p className="text-xs text-zinc-500">{t('dash.brief.generated', { date: tenant.brief.generatedAt })}</p>
           </CardHeader>
           <CardContent className="space-y-3">
             <p className="text-sm leading-relaxed text-zinc-300">{tenant.brief.synthese[0]}</p>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-zinc-500">
-              <span>{tenant.brief.signauxFaibles.length} signaux faibles</span>
-              <span>{tenant.brief.incidents.length} incidents suivis</span>
-              <span>{tenant.brief.recommandations.length} recommandations</span>
+              <span>{t('dash.brief.signals', { count: tenant.brief.signauxFaibles.length })}</span>
+              <span>{t('dash.brief.incidents', { count: tenant.brief.incidents.length })}</span>
+              <span>{t('dash.brief.recos', { count: tenant.brief.recommandations.length })}</span>
             </div>
             <Link to="/veille" className="inline-flex items-center gap-1.5 text-sm font-medium text-sky-400 hover:text-sky-300">
-              Lire le brief complet <ArrowRight className="h-4 w-4" />
+              {t('dash.brief.readMore')} <ArrowRight className="h-4 w-4" />
             </Link>
           </CardContent>
         </Card>
@@ -213,7 +215,7 @@ export default function DashboardPage() {
           <CardHeader className="pb-2">
             <div className="flex items-center gap-2">
               <CalendarClock className="h-4 w-4 text-sky-400" />
-              <CardTitle className="text-sm font-medium text-zinc-200">Aujourd’hui — dimanche 19 juillet</CardTitle>
+              <CardTitle className="text-sm font-medium text-zinc-200">{t('dash.today.title')}</CardTitle>
             </div>
           </CardHeader>
           <CardContent className="space-y-3">

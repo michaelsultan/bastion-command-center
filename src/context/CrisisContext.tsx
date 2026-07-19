@@ -2,6 +2,8 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { ReactNode } from 'react'
 import { toast } from 'sonner'
 import { useTenant } from '@/context/TenantContext'
+import { useLanguage } from '@/i18n/LanguageContext'
+import type { LanguageApi } from '@/i18n/LanguageContext'
 import { CRISIS_BEATS, CRISIS_SCRIPT } from '@/data/crisis'
 import { TENANT_DATA } from '@/data'
 import type { CrisisScript } from '@/data/crisis'
@@ -49,19 +51,20 @@ interface CrisisApi extends CrisisState {
 
 const CrisisContext = createContext<CrisisApi | null>(null)
 
-function buildTicker(script: CrisisScript): TickerEvent[] {
+function buildTicker(script: CrisisScript, t: LanguageApi['t']): TickerEvent[] {
   return [
-    { at: 0, text: 'Pic de mentions détecté — analyse du moteur de veille en cours' },
-    { at: CRISIS_BEATS.alert1, text: `Alerte Élevée : ${script.alert1}` },
-    { at: CRISIS_BEATS.alert2, text: `Alerte Élevée : ${script.alert2}` },
-    { at: CRISIS_BEATS.alert3, text: `Alerte Critique : ${script.alert3}` },
-    { at: CRISIS_BEATS.incident, text: `Incident ouvert : ${script.incidentTitle}` },
-    { at: CRISIS_BEATS.response, text: 'Plan de réponse activé — 6 contre-mesures lancées simultanément' },
+    { at: 0, text: t('crisis.ticker.anomaly') },
+    { at: CRISIS_BEATS.alert1, text: t('crisis.ticker.alertHigh', { text: script.alert1 }) },
+    { at: CRISIS_BEATS.alert2, text: t('crisis.ticker.alertHigh', { text: script.alert2 }) },
+    { at: CRISIS_BEATS.alert3, text: t('crisis.ticker.alertCrit', { text: script.alert3 }) },
+    { at: CRISIS_BEATS.incident, text: t('crisis.ticker.incident', { title: script.incidentTitle }) },
+    { at: CRISIS_BEATS.response, text: t('crisis.ticker.response') },
   ]
 }
 
 export function CrisisProvider({ children }: { children: ReactNode }) {
   const { tenantId } = useTenant()
+  const { lang, t } = useLanguage()
   const [state, setState] = useState<CrisisState>(IDLE)
   const timeoutsRef = useRef<number[]>([])
   const intervalRef = useRef<number | null>(null)
@@ -79,20 +82,20 @@ export function CrisisProvider({ children }: { children: ReactNode }) {
     clearTimers()
     setState((s) => {
       if (s.active) {
-        toast.info('Simulation terminée', { description: 'État normal restauré sur l’ensemble des écrans.' })
+        toast.info(t('crisis.toast.stop.title'), { description: t('crisis.toast.stop.desc') })
       }
       // lastCrisis est conservé : le rapport PDF reste disponible après la fin.
       return { ...IDLE, lastCrisis: s.lastCrisis }
     })
-  }, [clearTimers])
+  }, [clearTimers, t])
 
   const start = useCallback(() => {
     setState((s) => {
       if (s.active) return s // impossible de lancer deux simulations
-      const script = CRISIS_SCRIPT[tenantId]
+      const script = CRISIS_SCRIPT[lang][tenantId]
 
-      toast.warning('SIMULATION — Anomalie détectée', {
-        description: `Pic de mentions en cours d’analyse sur « ${TENANT_DATA[tenantId].meta.name} ».`,
+      toast.warning(t('crisis.toast.start.title'), {
+        description: t('crisis.toast.start.desc', { name: TENANT_DATA[lang][tenantId].meta.name }),
       })
 
       const beat = (delay: number, fn: () => void) => {
@@ -101,22 +104,22 @@ export function CrisisProvider({ children }: { children: ReactNode }) {
 
       beat(CRISIS_BEATS.alert1, () => {
         setState((p) => ({ ...p, phase: 2 }))
-        toast.warning('SIMULATION — Nouvelle alerte (Élevée)', { description: script.alert1 })
+        toast.warning(t('crisis.toast.a1.title'), { description: script.alert1 })
       })
       beat(CRISIS_BEATS.alert2, () => {
         setState((p) => ({ ...p, phase: 3 }))
-        toast.warning('SIMULATION — Coordination confirmée', {
-          description: `${script.alert2}. Niveau de menace relevé.`,
+        toast.warning(t('crisis.toast.a2.title'), {
+          description: t('crisis.toast.a2.desc', { alert: script.alert2 }),
         })
       })
       beat(CRISIS_BEATS.alert3, () => {
         setState((p) => ({ ...p, phase: 4 }))
-        toast.error('SIMULATION — Alerte critique', { description: script.alert3 })
+        toast.error(t('crisis.toast.a3.title'), { description: script.alert3 })
       })
       beat(CRISIS_BEATS.incident, () => {
         setState((p) => ({ ...p, phase: 5 }))
-        toast.error('SIMULATION — Attaque coordonnée en cours', {
-          description: `Incident ouvert : ${script.incidentTitle}.`,
+        toast.error(t('crisis.toast.incident.title'), {
+          description: t('crisis.toast.incident.desc', { title: script.incidentTitle }),
         })
       })
       beat(CRISIS_BEATS.response, () => {
@@ -125,8 +128,8 @@ export function CrisisProvider({ children }: { children: ReactNode }) {
           phase: 6,
           lastCrisis: p.lastCrisis ? { ...p.lastCrisis, completed: true } : p.lastCrisis,
         }))
-        toast.success('SIMULATION — Plan de réponse activé', {
-          description: 'Playbook « Campagne de dénigrement » : 6 contre-mesures lancées.',
+        toast.success(t('crisis.toast.response.title'), {
+          description: t('crisis.toast.response.desc'),
         })
       })
 
@@ -136,7 +139,7 @@ export function CrisisProvider({ children }: { children: ReactNode }) {
 
       return { active: true, crisisTenantId: tenantId, phase: 1, elapsed: 0, lastCrisis: { tenantId, completed: false } }
     })
-  }, [tenantId])
+  }, [tenantId, lang, t])
 
   // Garde contre les fuites de timers au démontage
   useEffect(() => clearTimers, [clearTimers])
@@ -145,11 +148,12 @@ export function CrisisProvider({ children }: { children: ReactNode }) {
     (base: TenantData): TenantData => {
       const { active, crisisTenantId, phase, elapsed } = state
       if (!active || !crisisTenantId || base.meta.id !== crisisTenantId || phase === 0) return base
-      const script = CRISIS_SCRIPT[crisisTenantId]
+      const script = CRISIS_SCRIPT[lang][crisisTenantId]
 
       const ago = (at: number) => {
         const d = Math.max(0, elapsed - at)
-        return d < 60 ? `il y a ${d} s` : `il y a ${Math.floor(d / 60)} min`
+        if (lang === 'fr') return d < 60 ? `il y a ${d} s` : `il y a ${Math.floor(d / 60)} min`
+        return d < 60 ? `${d} s ago` : `${Math.floor(d / 60)} min ago`
       }
 
       // Alertes injectées (les plus récentes en tête)
@@ -189,10 +193,10 @@ export function CrisisProvider({ children }: { children: ReactNode }) {
       const level: ThreatLevel = phase >= 5 ? 'CRITIQUE' : phase >= 3 ? ESCALATE[base.threat.level] : base.threat.level
       const summary =
         phase >= 5
-          ? 'Attaque coordonnée en cours — plan de réponse activé, contre-mesures en déploiement.'
+          ? t('crisis.threat.p5')
           : phase >= 3
-            ? 'Coordination confirmée entre comptes — niveau de menace relevé. Analyse en cours.'
-            : 'Pic de mentions anormal en cours d’analyse par le moteur de veille.'
+            ? t('crisis.threat.p3')
+            : t('crisis.threat.p1')
 
       // Vague de mentions : montée progressive sur ~12 s à partir de t+16
       const spike =
@@ -227,17 +231,17 @@ export function CrisisProvider({ children }: { children: ReactNode }) {
         }))
         steps.push({
           time: '—',
-          title: 'Post-mortem & clôture',
-          description: 'Analyse complète une fois la propagation retombée sous le seuil d’alerte.',
-          operator: 'À attribuer',
+          title: t('crisis.postmortem.title'),
+          description: t('crisis.postmortem.desc'),
+          operator: t('crisis.postmortem.operator'),
           state: 'a_venir',
         })
         incident = {
           id: 'INC-LIVE-26',
           title: script.incidentTitle,
           severity: 'critique',
-          status: 'En cours',
-          detected: '19/07/2026 — simulation en direct',
+          status: t('crisis.incident.status'),
+          detected: t('crisis.incident.detected'),
           summary: script.incidentSummary,
           steps,
         }
@@ -245,7 +249,7 @@ export function CrisisProvider({ children }: { children: ReactNode }) {
 
       return {
         ...base,
-        threat: { ...base.threat, level, summary, updatedAt: '19/07/2026 — en direct' },
+        threat: { ...base.threat, level, summary, updatedAt: t('crisis.overlay.updatedAt') },
         kpis: {
           ...base.kpis,
           activeAlerts: base.kpis.activeAlerts + injected.length,
@@ -259,20 +263,20 @@ export function CrisisProvider({ children }: { children: ReactNode }) {
         incident,
       }
     },
-    [state],
+    [state, lang, t],
   )
 
   const value = useMemo<CrisisApi>(() => {
-    const script = state.crisisTenantId ? CRISIS_SCRIPT[state.crisisTenantId] : null
+    const script = state.crisisTenantId ? CRISIS_SCRIPT[lang][state.crisisTenantId] : null
     return {
       ...state,
       start,
       stop,
       applyTo,
-      ticker: script ? buildTicker(script).filter((e) => e.at <= state.elapsed) : [],
+      ticker: script ? buildTicker(script, t).filter((e) => e.at <= state.elapsed) : [],
       measures: script && state.phase >= 6 ? script.measures : [],
     }
-  }, [state, start, stop, applyTo])
+  }, [state, start, stop, applyTo, lang, t])
 
   return <CrisisContext.Provider value={value}>{children}</CrisisContext.Provider>
 }

@@ -22,6 +22,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { PageHeader } from '@/components/PageHeader'
 import { StatusBadge } from '@/components/StatusBadge'
 import { useTenant } from '@/context/TenantContext'
+import { useLanguage } from '@/i18n/LanguageContext'
+import type { TranslationKey } from '@/i18n/en'
 import { PLAYBOOKS } from '@/data'
 import type { AssetType, CheckStatus } from '@/data/types'
 import { cn } from '@/lib/utils'
@@ -32,6 +34,14 @@ const ASSET_ICON: Record<AssetType, typeof Globe> = {
   'Compte social': Share2,
   'Email': Mail,
   'Outil': Wrench,
+}
+
+const ASSET_TYPE_KEY: Record<AssetType, TranslationKey> = {
+  'Site web': 'asset.type.Site web',
+  'Domaine': 'asset.type.Domaine',
+  'Compte social': 'asset.type.Compte social',
+  'Email': 'asset.type.Email',
+  'Outil': 'asset.type.Outil',
 }
 
 const CHECK_ICON: Record<CheckStatus, { icon: typeof CheckCircle2; className: string }> = {
@@ -86,22 +96,23 @@ function ScoreGauge({ score }: { score: number }) {
 
 export default function SecuritePage() {
   const { tenant } = useTenant()
+  const { lang, t } = useLanguage()
   const { kpis, stressTest } = tenant
   const delta = kpis.securityScoreDelta
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <PageHeader
-        title="Sécurité"
-        description="Posture de sécurité des actifs numériques — contrôles automatisés quotidiens à 06:00."
+        title={t('sec.title')}
+        description={t('sec.desc')}
         actions={
           <Button
             variant="outline"
             className="border-zinc-700 bg-zinc-900 text-zinc-200 hover:bg-zinc-800 hover:text-zinc-100"
-            onClick={() => toast.info('Export du rapport de posture demandé — disponible dans quelques instants.')}
+            onClick={() => toast.info(t('sec.export.toast'))}
           >
             <FileText className="mr-2 h-4 w-4" />
-            Exporter le rapport
+            {t('sec.export')}
           </Button>
         }
       />
@@ -110,28 +121,28 @@ export default function SecuritePage() {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Card className="bg-zinc-900/70">
           <CardHeader className="pb-0">
-            <CardTitle className="text-sm font-medium text-zinc-200">Score de sécurité global</CardTitle>
+            <CardTitle className="text-sm font-medium text-zinc-200">{t('sec.score.title')}</CardTitle>
           </CardHeader>
           <CardContent className="flex items-center gap-6 pt-4">
             <ScoreGauge score={kpis.securityScore} />
             <div className="space-y-2 text-sm">
               <p className="text-zinc-400">
-                Évolution hebdomadaire :{' '}
+                {t('sec.score.weekly')}{' '}
                 <span className={cn('font-semibold', delta >= 0 ? 'text-emerald-400' : 'text-red-400')}>
                   {delta >= 0 ? '+' : ''}
                   {delta} pts
                 </span>
               </p>
               <p className="text-zinc-400">
-                Actifs surveillés : <span className="font-semibold text-zinc-200">{tenant.assets.length}</span>
+                {t('sec.score.assets')} <span className="font-semibold text-zinc-200">{tenant.assets.length}</span>
               </p>
               <p className="text-zinc-400">
-                Contrôles en échec :{' '}
+                {t('sec.score.failing')}{' '}
                 <span className="font-semibold text-zinc-200">
                   {tenant.checks.filter((c) => c.status !== 'ok').length}
                 </span>
               </p>
-              <p className="text-xs text-zinc-500">Barème : ≥ 80 protégé · 60–79 à surveiller · &lt; 60 vulnérable</p>
+              <p className="text-xs text-zinc-500">{t('sec.score.scale')}</p>
             </div>
           </CardContent>
         </Card>
@@ -140,16 +151,16 @@ export default function SecuritePage() {
         <Card className="border-sky-400/20 bg-zinc-900/70 lg:col-span-2">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium text-zinc-200">Test de stress pré-électoral</CardTitle>
+              <CardTitle className="text-sm font-medium text-zinc-200">{t('sec.stress.title')}</CardTitle>
               <Badge variant="outline" className="border-sky-400/40 bg-sky-400/10 text-sky-400">
-                Dernier run : {stressTest.lastRun}
+                {t('sec.stress.lastRun', { date: stressTest.lastRun })}
               </Badge>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-end gap-3">
               <span className="text-4xl font-bold text-zinc-50">{stressTest.readiness} %</span>
-              <span className="pb-1 text-sm text-zinc-400">de préparation opérationnelle</span>
+              <span className="pb-1 text-sm text-zinc-400">{t('sec.stress.readiness')}</span>
             </div>
             <Progress value={stressTest.readiness} className="h-2 bg-zinc-800 [&>div]:bg-sky-400" />
             <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -167,12 +178,12 @@ export default function SecuritePage() {
             <Button
               className="bg-sky-500 font-medium text-zinc-950 hover:bg-sky-400"
               onClick={() =>
-                toast.success('Rapport de stress-test lancé', {
-                  description: 'Le rapport consolidé sera joint au brief de demain matin.',
+                toast.success(t('sec.stress.toast.title'), {
+                  description: t('sec.stress.toast.desc'),
                 })
               }
             >
-              Lancer le rapport
+              {t('sec.stress.launch')}
             </Button>
           </CardContent>
         </Card>
@@ -181,17 +192,17 @@ export default function SecuritePage() {
       {/* Actifs */}
       <Card className="bg-zinc-900/70">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-zinc-200">Registre des actifs</CardTitle>
+          <CardTitle className="text-sm font-medium text-zinc-200">{t('sec.assets.title')}</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow className="border-zinc-800 hover:bg-transparent">
-                <TableHead className="text-zinc-400">Actif</TableHead>
-                <TableHead className="text-zinc-400">Type</TableHead>
-                <TableHead className="text-zinc-400">Statut</TableHead>
-                <TableHead className="text-right text-zinc-400">Score</TableHead>
-                <TableHead className="text-right text-zinc-400">Dernier contrôle</TableHead>
+                <TableHead className="text-zinc-400">{t('sec.assets.col.asset')}</TableHead>
+                <TableHead className="text-zinc-400">{t('sec.assets.col.type')}</TableHead>
+                <TableHead className="text-zinc-400">{t('sec.assets.col.status')}</TableHead>
+                <TableHead className="text-right text-zinc-400">{t('sec.assets.col.score')}</TableHead>
+                <TableHead className="text-right text-zinc-400">{t('sec.assets.col.lastCheck')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -207,7 +218,7 @@ export default function SecuritePage() {
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className="border-zinc-700 text-zinc-400">
-                        {a.type}
+                        {t(ASSET_TYPE_KEY[a.type])}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -230,8 +241,8 @@ export default function SecuritePage() {
       {/* Contrôles automatisés */}
       <Card className="bg-zinc-900/70">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-zinc-200">Contrôles automatisés</CardTitle>
-          <p className="text-xs text-zinc-500">Exécution quotidienne à 06:00 — alerte immédiate en cas d’échec critique</p>
+          <CardTitle className="text-sm font-medium text-zinc-200">{t('sec.checks.title')}</CardTitle>
+          <p className="text-xs text-zinc-500">{t('sec.checks.sub')}</p>
         </CardHeader>
         <CardContent className="grid grid-cols-1 gap-3 md:grid-cols-2">
           {tenant.checks.map((c) => {
@@ -243,7 +254,7 @@ export default function SecuritePage() {
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-zinc-100">{c.label}</p>
                   <p className="mt-0.5 text-xs text-zinc-400">{c.detail}</p>
-                  <p className="mt-1 text-[11px] tabular-nums text-zinc-600">Dernière exécution : {c.lastRun}</p>
+                  <p className="mt-1 text-[11px] tabular-nums text-zinc-600">{t('sec.checks.lastRun', { time: c.lastRun })}</p>
                 </div>
               </div>
             )
@@ -253,9 +264,9 @@ export default function SecuritePage() {
 
       {/* Playbooks */}
       <div>
-        <h2 className="mb-3 text-sm font-medium text-zinc-200">Playbooks de réponse à incident</h2>
+        <h2 className="mb-3 text-sm font-medium text-zinc-200">{t('sec.playbooks.title')}</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {PLAYBOOKS.map((p) => {
+          {PLAYBOOKS[lang].map((p) => {
             const Icon = PLAYBOOK_ICON[p.key] ?? FileText
             return (
               <Card key={p.key} className="bg-zinc-900/70">
@@ -266,16 +277,16 @@ export default function SecuritePage() {
                   <p className="text-sm font-semibold text-zinc-100">{p.title}</p>
                   <p className="mt-1 flex-1 text-xs leading-relaxed text-zinc-400">{p.description}</p>
                   <div className="mt-3 flex items-center justify-between text-[11px] text-zinc-500">
-                    <span>{p.steps} étapes</span>
-                    <span>Revue : {p.lastReview}</span>
+                    <span>{t('sec.playbooks.steps', { count: p.steps })}</span>
+                    <span>{t('sec.playbooks.review', { date: p.lastReview })}</span>
                   </div>
                   <Button
                     variant="outline"
                     size="sm"
                     className="mt-3 border-zinc-700 bg-transparent text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100"
-                    onClick={() => toast.info(`Playbook « ${p.title} » ouvert en mode consultation.`)}
+                    onClick={() => toast.info(t('sec.playbooks.toast', { title: p.title }))}
                   >
-                    Ouvrir le playbook
+                    {t('sec.playbooks.open')}
                   </Button>
                 </CardContent>
               </Card>

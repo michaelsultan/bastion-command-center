@@ -1,7 +1,9 @@
+import { useLanguage } from '@/i18n/LanguageContext'
 import { cn } from '@/lib/utils'
 
 /** Badge des alertes auto-générées par l'écoute GDELT — distingué du badge « Live » de la simulation de crise. */
 export function TempsReelBadge({ className }: { className?: string }) {
+  const { t } = useLanguage()
   return (
     <span
       className={cn(
@@ -13,7 +15,7 @@ export function TempsReelBadge({ className }: { className?: string }) {
         <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-70" />
         <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
       </span>
-      Temps réel
+      {t('badge.tempsreel')}
     </span>
   )
 }

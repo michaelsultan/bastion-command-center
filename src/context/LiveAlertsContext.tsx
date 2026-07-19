@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { AlertStatus, Severity, TenantId } from '@/data/types'
+import { useLanguage } from '@/i18n/LanguageContext'
 
 // ─── Alertes temps réel — détection automatique GDELT (session uniquement) ───
 // Les alertes sont créées par la page Veille après analyse des articles réels,
@@ -63,6 +64,7 @@ function nowStamp(): string {
 }
 
 export function LiveAlertsProvider({ children }: { children: ReactNode }) {
+  const { t } = useLanguage()
   const [alerts, setAlerts] = useState<LiveAlert[]>([])
   // Épisodes ouverts : clé `${tenantId}:${kind}` → id de l'alerte. Non réactif par
   // design : la dédup est une mécanique interne, l'UI ne lit que `alerts`.
@@ -102,7 +104,7 @@ export function LiveAlertsProvider({ children }: { children: ReactNode }) {
         kind,
         tenantId,
         tenantName,
-        source: 'Veille GDELT — temps réel',
+        source: t('liveAlert.source'),
         time,
         status: 'nouveau',
         ...detection,
@@ -111,7 +113,7 @@ export function LiveAlertsProvider({ children }: { children: ReactNode }) {
       setAlerts((prev) => [alert, ...prev])
       return 'created'
     },
-    [],
+    [t],
   )
 
   const setLiveAlertStatus = useCallback((id: string, status: AlertStatus) => {

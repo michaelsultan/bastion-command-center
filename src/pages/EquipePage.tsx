@@ -8,6 +8,7 @@ import { Progress } from '@/components/ui/progress'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { PageHeader } from '@/components/PageHeader'
 import { useTenant } from '@/context/TenantContext'
+import { useLanguage } from '@/i18n/LanguageContext'
 import type { AuditEntry } from '@/data/types'
 import { cn } from '@/lib/utils'
 
@@ -18,31 +19,34 @@ const AUDIT_ICON: Record<AuditEntry['type'], { icon: typeof History; className: 
   alerte: { icon: BellRing, className: 'border-amber-500/25 bg-amber-500/10 text-amber-400' },
 }
 
+const isReadOnlyRole = (role: string) => role.includes('lecture seule') || role.includes('read-only')
+
 export default function EquipePage() {
   const { tenant } = useTenant()
+  const { t } = useLanguage()
   const { charter } = tenant
   const pct = Math.round((charter.signed / charter.total) * 100)
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <PageHeader
-        title="Équipe & Accès"
-        description="Contrôle d’accès basé sur les rôles (RBAC), MFA obligatoire et journal d’audit complet."
+        title={t('eq.title')}
+        description={t('eq.desc')}
       />
 
-      {/* Membres */}
+      {/* Members */}
       <Card className="bg-zinc-900/70">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-zinc-200">Membres de l’espace de travail</CardTitle>
+          <CardTitle className="text-sm font-medium text-zinc-200">{t('eq.members.title')}</CardTitle>
         </CardHeader>
         <CardContent className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="border-zinc-800 hover:bg-transparent">
-                <TableHead className="text-zinc-400">Membre</TableHead>
-                <TableHead className="text-zinc-400">Rôle</TableHead>
-                <TableHead className="text-zinc-400">MFA</TableHead>
-                <TableHead className="text-right text-zinc-400">Dernière activité</TableHead>
+                <TableHead className="text-zinc-400">{t('eq.col.member')}</TableHead>
+                <TableHead className="text-zinc-400">{t('eq.col.role')}</TableHead>
+                <TableHead className="text-zinc-400">{t('eq.col.mfa')}</TableHead>
+                <TableHead className="text-right text-zinc-400">{t('eq.col.lastActive')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -64,7 +68,7 @@ export default function EquipePage() {
                       variant="outline"
                       className={cn(
                         'border-zinc-700 text-zinc-300',
-                        m.role.includes('lecture seule') && 'border-violet-400/40 bg-violet-400/10 text-violet-300',
+                        isReadOnlyRole(m.role) && 'border-violet-400/40 bg-violet-400/10 text-violet-300',
                       )}
                     >
                       {m.role}
@@ -73,11 +77,11 @@ export default function EquipePage() {
                   <TableCell>
                     {m.mfa ? (
                       <Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/10 text-emerald-400">
-                        Activé
+                        {t('eq.mfa.on')}
                       </Badge>
                     ) : (
                       <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-400">
-                        <AlertTriangle className="mr-1 h-3 w-3" />À activer
+                        <AlertTriangle className="mr-1 h-3 w-3" />{t('eq.mfa.off')}
                       </Badge>
                     )}
                   </TableCell>
@@ -90,12 +94,12 @@ export default function EquipePage() {
       </Card>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-        {/* Journal d'audit */}
+        {/* Audit log */}
         <Card className="bg-zinc-900/70 xl:col-span-2">
           <CardHeader className="pb-2">
             <div className="flex items-center gap-2">
               <History className="h-4 w-4 text-sky-400" />
-              <CardTitle className="text-sm font-medium text-zinc-200">Journal d’audit — actions sensibles</CardTitle>
+              <CardTitle className="text-sm font-medium text-zinc-200">{t('eq.audit.title')}</CardTitle>
             </div>
           </CardHeader>
           <CardContent className="space-y-2.5">
@@ -119,26 +123,26 @@ export default function EquipePage() {
           </CardContent>
         </Card>
 
-        {/* Charte numérique */}
+        {/* Digital charter */}
         <Card className="bg-zinc-900/70">
           <CardHeader className="pb-2">
             <div className="flex items-center gap-2">
               <FileCheck2 className="h-4 w-4 text-sky-400" />
-              <CardTitle className="text-sm font-medium text-zinc-200">Charte numérique</CardTitle>
+              <CardTitle className="text-sm font-medium text-zinc-200">{t('eq.charter.title')}</CardTitle>
             </div>
-            <p className="text-xs text-zinc-500">Accusé de lecture obligatoire — version en vigueur depuis le {charter.lastUpdate}</p>
+            <p className="text-xs text-zinc-500">{t('eq.charter.sub', { date: charter.lastUpdate })}</p>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-end gap-2">
               <span className="text-3xl font-bold text-zinc-50">
                 {charter.signed}/{charter.total}
               </span>
-              <span className="pb-1 text-sm text-zinc-400">signatures</span>
+              <span className="pb-1 text-sm text-zinc-400">{t('eq.charter.signatures')}</span>
             </div>
             <Progress value={pct} className="h-2 bg-zinc-800 [&>div]:bg-emerald-500" />
             {charter.pending.length > 0 ? (
               <div>
-                <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-zinc-500">En attente de signature</p>
+                <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-zinc-500">{t('eq.charter.pending')}</p>
                 <ul className="space-y-1">
                   {charter.pending.map((p) => (
                     <li key={p} className="flex items-center gap-2 text-sm text-zinc-300">
@@ -150,16 +154,20 @@ export default function EquipePage() {
               </div>
             ) : (
               <p className="flex items-center gap-2 text-sm text-emerald-400">
-                <CheckCircle2 className="h-4 w-4" /> Charte signée par l’ensemble de l’équipe.
+                <CheckCircle2 className="h-4 w-4" /> {t('eq.charter.allSigned')}
               </p>
             )}
             {charter.pending.length > 0 && (
               <Button
                 variant="outline"
                 className="w-full border-zinc-700 bg-zinc-900 text-zinc-200 hover:bg-zinc-800 hover:text-zinc-100"
-                onClick={() => toast.success('Relance envoyée', { description: `Rappel de signature transmis à ${charter.pending.join(', ')}.` })}
+                onClick={() =>
+                  toast.success(t('eq.charter.toast'), {
+                    description: t('eq.charter.toast.desc', { names: charter.pending.join(', ') }),
+                  })
+                }
               >
-                Relancer les signataires
+                {t('eq.charter.remind')}
               </Button>
             )}
           </CardContent>

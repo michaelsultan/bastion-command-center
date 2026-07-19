@@ -12,10 +12,11 @@ import { StatusBadge } from '@/components/StatusBadge'
 import { TempsReelBadge } from '@/components/TempsReelBadge'
 import { useCrisis, useEffectiveTenant } from '@/context/CrisisContext'
 import { useLiveAlerts } from '@/context/LiveAlertsContext'
+import { useLanguage } from '@/i18n/LanguageContext'
 import type { AlertStatus } from '@/data/types'
 import { cn } from '@/lib/utils'
 
-// Cycle de statut des alertes temps réel : Nouveau → En cours → Résolu
+// Status cycle for real-time alerts: New → In progress → Resolved
 const NEXT_STATUS: Record<AlertStatus, AlertStatus> = {
   nouveau: 'en_cours',
   en_cours: 'resolu',
@@ -25,24 +26,25 @@ const NEXT_STATUS: Record<AlertStatus, AlertStatus> = {
 export default function AlertesPage() {
   const tenant = useEffectiveTenant()
   const crisis = useCrisis()
+  const { t, lang } = useLanguage()
   const { alertsForTenant, countsForTenant, setLiveAlertStatus } = useLiveAlerts()
   const inc = tenant.incident
   const liveAlerts = alertsForTenant(tenant.meta.id)
   const liveCounts = countsForTenant(tenant.meta.id)
 
   const handleExport = async () => {
-    // jsPDF est chargé à la demande pour garder le bundle principal léger
+    // jsPDF is loaded on demand to keep the main bundle light
     const { buildIncidentReport, exportIncidentReportPdf } = await import('@/lib/incident-report')
-    const report = buildIncidentReport(tenant, crisis)
+    const report = buildIncidentReport(tenant, crisis, lang)
     exportIncidentReportPdf(report)
-    toast.success('Rapport PDF généré', { description: report.fileName })
+    toast.success(t('al.export.toast'), { description: report.fileName })
   }
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <PageHeader
-        title="Alertes & Incidents"
-        description={`${tenant.kpis.activeAlerts + liveCounts.active} alertes actives · 1 incident ouvert — règles de notification : e-mail, SMS et in-app.`}
+        title={t('al.title')}
+        description={t('al.desc', { count: tenant.kpis.activeAlerts + liveCounts.active })}
         actions={
           <Button
             variant="outline"
@@ -50,26 +52,26 @@ export default function AlertesPage() {
             onClick={handleExport}
           >
             <Download className="mr-2 h-4 w-4" />
-            Exporter le rapport PDF
+            {t('al.export')}
           </Button>
         }
       />
 
-      {/* Table des alertes */}
+      {/* Alerts table */}
       <Card className="bg-zinc-900/70">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-zinc-200">Alertes</CardTitle>
+          <CardTitle className="text-sm font-medium text-zinc-200">{t('al.table.title')}</CardTitle>
         </CardHeader>
         <CardContent className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="border-zinc-800 hover:bg-transparent">
-                <TableHead className="text-zinc-400">Réf.</TableHead>
-                <TableHead className="text-zinc-400">Sévérité</TableHead>
-                <TableHead className="min-w-[280px] text-zinc-400">Intitulé</TableHead>
-                <TableHead className="text-zinc-400">Source</TableHead>
-                <TableHead className="text-zinc-400">Horodatage</TableHead>
-                <TableHead className="text-right text-zinc-400">Statut</TableHead>
+                <TableHead className="text-zinc-400">{t('al.col.ref')}</TableHead>
+                <TableHead className="text-zinc-400">{t('al.col.severity')}</TableHead>
+                <TableHead className="min-w-[280px] text-zinc-400">{t('al.col.title')}</TableHead>
+                <TableHead className="text-zinc-400">{t('al.col.source')}</TableHead>
+                <TableHead className="text-zinc-400">{t('al.col.time')}</TableHead>
+                <TableHead className="text-right text-zinc-400">{t('al.col.status')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -90,7 +92,7 @@ export default function AlertesPage() {
                       <button
                         type="button"
                         onClick={() => setLiveAlertStatus(a.id, NEXT_STATUS[a.status])}
-                        title="Changer le statut : Nouveau → En cours → Résolu"
+                        title={t('al.statusCycle')}
                         className="inline-flex cursor-pointer rounded transition-opacity hover:opacity-75"
                       >
                         <StatusBadge status={a.status} />
@@ -105,7 +107,7 @@ export default function AlertesPage() {
                         ))}
                         {a.links.length > 0 && (
                           <p className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-0.5">
-                            <span className="text-zinc-500">Titres concernés :</span>
+                            <span className="text-zinc-500">{t('al.linksAbout')}</span>
                             {a.links.map((l, i) => (
                               <a
                                 key={i}
@@ -147,7 +149,7 @@ export default function AlertesPage() {
         </CardContent>
       </Card>
 
-      {/* Incident ouvert — chronologie */}
+      {/* Open incident — timeline */}
       <Card className="bg-zinc-900/70">
         <CardHeader className="border-b border-zinc-800 pb-4">
           <div className="flex flex-wrap items-center gap-3">
@@ -162,7 +164,7 @@ export default function AlertesPage() {
                 </Badge>
               </div>
               <p className="mt-1 flex items-center gap-1.5 text-xs text-zinc-500">
-                <Clock3 className="h-3.5 w-3.5" /> Détecté le {inc.detected}
+                <Clock3 className="h-3.5 w-3.5" /> {t('al.incident.detected', { date: inc.detected })}
               </p>
             </div>
           </div>

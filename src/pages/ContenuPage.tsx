@@ -3,15 +3,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { PageHeader } from '@/components/PageHeader'
 import { SourceIcon } from '@/components/SourceIcon'
 import { useTenant } from '@/context/TenantContext'
+import { useLanguage } from '@/i18n/LanguageContext'
+import type { TranslationKey } from '@/i18n/en'
 import { formatNumber } from '@/data'
 import type { ContentCard as ContentCardData, Pipeline } from '@/data/types'
 import { cn } from '@/lib/utils'
 
-const COLUMNS: { key: keyof Pipeline; label: string; dot: string }[] = [
-  { key: 'brouillon', label: 'Brouillon', dot: 'bg-zinc-400' },
-  { key: 'relecture', label: 'En relecture', dot: 'bg-amber-500' },
-  { key: 'approuve', label: 'Approuvé', dot: 'bg-emerald-500' },
-  { key: 'planifie', label: 'Planifié', dot: 'bg-sky-400' },
+const COLUMNS: { key: keyof Pipeline; labelKey: TranslationKey; dot: string }[] = [
+  { key: 'brouillon', labelKey: 'co.col.brouillon', dot: 'bg-zinc-400' },
+  { key: 'relecture', labelKey: 'co.col.relecture', dot: 'bg-amber-500' },
+  { key: 'approuve', labelKey: 'co.col.approuve', dot: 'bg-emerald-500' },
+  { key: 'planifie', labelKey: 'co.col.planifie', dot: 'bg-sky-400' },
 ]
 
 function PipelineCard({ card }: { card: ContentCardData }) {
@@ -29,24 +31,25 @@ function PipelineCard({ card }: { card: ContentCardData }) {
 
 export default function ContenuPage() {
   const { tenant } = useTenant()
+  const { t, lang } = useLanguage()
   const maxPortee = Math.max(...tenant.platformStats.map((p) => p.portee))
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <PageHeader
-        title="Contenu & Campagne"
-        description="Calendrier éditorial, pipeline de validation et performances par plateforme."
+        title={t('co.title')}
+        description={t('co.desc')}
         actions={
           <Badge variant="outline" className="border-violet-400/40 bg-violet-400/10 px-3 py-1 text-violet-300">
-            Phase 2 — Aperçu
+            {t('co.phase2')}
           </Badge>
         }
       />
 
-      {/* Calendrier éditorial */}
+      {/* Editorial calendar */}
       <Card className="bg-zinc-900/70">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-zinc-200">Calendrier éditorial — semaine du 13 au 19 juillet 2026</CardTitle>
+          <CardTitle className="text-sm font-medium text-zinc-200">{t('co.cal.title')}</CardTitle>
         </CardHeader>
         <CardContent className="overflow-x-auto">
           <div className="grid min-w-[900px] grid-cols-7 gap-2">
@@ -82,9 +85,9 @@ export default function ContenuPage() {
         </CardContent>
       </Card>
 
-      {/* Pipeline éditorial */}
+      {/* Content pipeline */}
       <div>
-        <h2 className="mb-3 text-sm font-medium text-zinc-200">Pipeline de contenu</h2>
+        <h2 className="mb-3 text-sm font-medium text-zinc-200">{t('co.pipeline.title')}</h2>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
           {COLUMNS.map((col) => {
             const cards = tenant.pipeline[col.key]
@@ -92,7 +95,7 @@ export default function ContenuPage() {
               <div key={col.key} className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3">
                 <div className="mb-3 flex items-center gap-2 px-1">
                   <span className={cn('h-2 w-2 rounded-full', col.dot)} />
-                  <span className="text-sm font-medium text-zinc-200">{col.label}</span>
+                  <span className="text-sm font-medium text-zinc-200">{t(col.labelKey)}</span>
                   <span className="ml-auto rounded bg-zinc-800 px-1.5 py-0.5 text-[11px] tabular-nums text-zinc-400">
                     {cards.length}
                   </span>
@@ -108,10 +111,10 @@ export default function ContenuPage() {
         </div>
       </div>
 
-      {/* Statistiques par plateforme */}
+      {/* Per-platform stats */}
       <Card className="bg-zinc-900/70">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-zinc-200">Performance par plateforme — 7 derniers jours</CardTitle>
+          <CardTitle className="text-sm font-medium text-zinc-200">{t('co.perf.title')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {tenant.platformStats.map((p) => (
@@ -124,14 +127,14 @@ export default function ContenuPage() {
                     style={{ width: `${Math.round((p.portee / maxPortee) * 100)}%` }}
                   />
                 </div>
-                <span className="w-20 text-right text-sm tabular-nums text-zinc-300">{formatNumber(p.portee)}</span>
+                <span className="w-20 text-right text-sm tabular-nums text-zinc-300">{formatNumber(p.portee, lang)}</span>
               </div>
               <Badge variant="outline" className="border-emerald-500/30 bg-emerald-500/10 tabular-nums text-emerald-400">
-                {p.engagement.toLocaleString('fr-FR')} % eng.
+                {p.engagement.toLocaleString(lang === 'fr' ? 'fr-FR' : 'en-US')} {t('co.perf.eng')}
               </Badge>
             </div>
           ))}
-          <p className="pt-1 text-xs text-zinc-500">Portée = contacts uniques estimés · Engagement = interactions / portée.</p>
+          <p className="pt-1 text-xs text-zinc-500">{t('co.perf.note')}</p>
         </CardContent>
       </Card>
     </div>

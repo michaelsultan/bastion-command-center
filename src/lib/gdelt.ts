@@ -1,4 +1,5 @@
 import type { Sentiment, TenantId } from '@/data/types'
+import type { Lang } from '@/i18n/LanguageContext'
 
 // ─── GDELT DOC 2 API — couche d'accès (via proxy Vite /api/gdelt) ───────────
 
@@ -16,11 +17,20 @@ export interface GdeltVolumePoint {
   value: number
 }
 
-export const GDELT_QUERIES: Record<TenantId, { query: string; label: string }> = {
-  marinescu: { query: '("Cluj-Napoca" OR Cluj) sourcelang:romanian', label: 'Cluj-Napoca — presse roumaine' },
-  kowalska: { query: '(Gdańsk OR Gdansk) sourcelang:polish', label: 'Gdańsk — presse polonaise' },
+export const GDELT_QUERIES: Record<TenantId, { query: string; label: Record<Lang, string> }> = {
+  marinescu: {
+    query: '("Cluj-Napoca" OR Cluj) sourcelang:romanian',
+    label: { fr: 'Cluj-Napoca — presse roumaine', en: 'Cluj-Napoca — Romanian press' },
+  },
+  kowalska: {
+    query: '(Gdańsk OR Gdansk) sourcelang:polish',
+    label: { fr: 'Gdańsk — presse polonaise', en: 'Gdańsk — Polish press' },
+  },
   // Novaria est fictive : requête générique « actualité municipale » (marquée démo)
-  novaria: { query: '("city council" OR "municipal election" OR mayor) sourcelang:french', label: 'Actualité municipale — requête générique (démo)' },
+  novaria: {
+    query: '("city council" OR "municipal election" OR mayor) sourcelang:french',
+    label: { fr: 'Actualité municipale — requête générique (démo)', en: 'Municipal news — generic query (demo)' },
+  },
 }
 
 class GdeltError extends Error {
@@ -121,15 +131,22 @@ export function sentimentHeuristic(title: string): Sentiment {
 
 // ─── Formatage ───────────────────────────────────────────────────────────────
 
-export function relativeTime(seendate: string): string {
+export function relativeTime(seendate: string, lang: Lang = 'fr'): string {
   const m = seendate.match(/(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z/)
   if (!m) return seendate
   const date = Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6]))
   const diff = Date.now() - date
-  if (diff < 0) return 'à l’instant'
   const min = Math.floor(diff / 60000)
-  if (min < 60) return `il y a ${min} min`
+  if (lang === 'fr') {
+    if (diff < 0) return 'à l’instant'
+    if (min < 60) return `il y a ${min} min`
+    const h = Math.floor(min / 60)
+    if (h < 48) return `il y a ${h} h`
+    return `il y a ${Math.floor(h / 24)} j`
+  }
+  if (diff < 0) return 'just now'
+  if (min < 60) return `${min} min ago`
   const h = Math.floor(min / 60)
-  if (h < 48) return `il y a ${h} h`
-  return `il y a ${Math.floor(h / 24)} j`
+  if (h < 48) return `${h} h ago`
+  return `${Math.floor(h / 24)} d ago`
 }

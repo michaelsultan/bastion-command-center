@@ -70,6 +70,8 @@ export interface Mention {
   source: SourceType
   author: string
   excerpt: string
+  /** Langue de l'extrait original (tag affiché, ex. 'FR', 'RO', 'PL'). */
+  lang: string
   sentiment: Sentiment
   reach: number
   time: string

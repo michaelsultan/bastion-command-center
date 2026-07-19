@@ -1,6 +1,15 @@
 import type { ThreatLevel } from '@/data/types'
+import { useLanguage } from '@/i18n/LanguageContext'
+import type { TranslationKey } from '@/i18n/en'
 import { ShieldAlert, ShieldCheck, ShieldHalf, ShieldX } from 'lucide-react'
 import { cn } from '@/lib/utils'
+
+const LEVEL_KEYS: Record<ThreatLevel, TranslationKey> = {
+  FAIBLE: 'threat.level.FAIBLE',
+  'MODÉRÉ': 'threat.level.MODÉRÉ',
+  'ÉLEVÉ': 'threat.level.ÉLEVÉ',
+  CRITIQUE: 'threat.level.CRITIQUE',
+}
 
 const CONFIG: Record<
   ThreatLevel,
@@ -47,6 +56,7 @@ interface ThreatBannerProps {
 }
 
 export function ThreatBanner({ level, summary, updatedAt }: ThreatBannerProps) {
+  const { t } = useLanguage()
   const c = CONFIG[level]
   const Icon = c.icon
   return (
@@ -55,15 +65,15 @@ export function ThreatBanner({ level, summary, updatedAt }: ThreatBannerProps) {
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <div className="flex items-center gap-2.5">
           <Icon className={cn('h-6 w-6', c.text)} />
-          <span className="text-sm text-zinc-400">Niveau de menace :</span>
-          <span className={cn('text-lg font-bold tracking-wide', c.text)}>{level}</span>
+          <span className="text-sm text-zinc-400">{t('threat.banner.label')}</span>
+          <span className={cn('text-lg font-bold tracking-wide', c.text)}>{t(LEVEL_KEYS[level])}</span>
           <span className={cn('relative flex h-2.5 w-2.5')}>
             <span className={cn('absolute inline-flex h-full w-full animate-ping rounded-full opacity-60', c.dot)} />
             <span className={cn('relative inline-flex h-2.5 w-2.5 rounded-full', c.dot)} />
           </span>
         </div>
         <p className="min-w-0 flex-1 text-sm text-zinc-300">{summary}</p>
-        <span className="whitespace-nowrap text-xs text-zinc-500">Évalué le {updatedAt}</span>
+        <span className="whitespace-nowrap text-xs text-zinc-500">{t('threat.banner.assessed', { date: updatedAt })}</span>
       </div>
     </div>
   )

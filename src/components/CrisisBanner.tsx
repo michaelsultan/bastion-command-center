@@ -1,15 +1,17 @@
 import { CheckCircle2, Download, Siren, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { useCrisis } from '@/context/CrisisContext'
+import { useLanguage } from '@/i18n/LanguageContext'
 import { TENANT_DATA } from '@/data'
 import { cn } from '@/lib/utils'
 
 export function CrisisBanner() {
   const crisis = useCrisis()
+  const { lang, t } = useLanguage()
   const { active, phase, elapsed, ticker, measures, stop, crisisTenantId } = crisis
   if (!active || !crisisTenantId) return null
 
-  const tenant = TENANT_DATA[crisisTenantId]
+  const tenant = TENANT_DATA[lang][crisisTenantId]
   const critical = phase >= 5
   const mm = String(Math.floor(elapsed / 60)).padStart(2, '0')
   const ss = String(elapsed % 60).padStart(2, '0')
@@ -18,9 +20,9 @@ export function CrisisBanner() {
   const handleExport = async () => {
     // jsPDF est chargé à la demande pour garder le bundle principal léger
     const { buildIncidentReport, exportIncidentReportPdf } = await import('@/lib/incident-report')
-    const report = buildIncidentReport(crisis.applyTo(tenant), crisis)
+    const report = buildIncidentReport(crisis.applyTo(tenant), crisis, lang)
     exportIncidentReportPdf(report)
-    toast.success('Rapport PDF généré', { description: report.fileName })
+    toast.success(t('cb.toast'), { description: report.fileName })
   }
 
   return (
@@ -30,14 +32,14 @@ export function CrisisBanner() {
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           <Siren className="h-5 w-5 animate-pulse text-red-400" />
           <p className="text-sm font-bold tracking-wide text-red-300">
-            {critical ? 'ATTAQUE COORDONNÉE EN COURS — NIVEAU CRITIQUE' : 'ANOMALIE DÉTECTÉE — pic de mentions en cours d’analyse'}
+            {critical ? t('cb.critical') : t('cb.anomaly')}
           </p>
           <span className="rounded border border-red-500/50 bg-red-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-red-400">
-            Simulation
+            {t('cb.simulation')}
           </span>
           <span className="rounded bg-red-500/10 px-2 py-0.5 text-xs font-medium text-red-200">{tenant.meta.name}</span>
           <span className="ml-auto flex items-center gap-3">
-            <span className="font-mono text-sm tabular-nums text-red-200" title="Temps écoulé">
+            <span className="font-mono text-sm tabular-nums text-red-200" title={t('cb.elapsed')}>
               T+{mm}:{ss}
             </span>
             <button
@@ -45,7 +47,7 @@ export function CrisisBanner() {
               className="flex items-center gap-1 rounded border border-red-500/40 px-2 py-1 text-xs font-medium text-red-300 hover:bg-red-500/10"
             >
               <X className="h-3.5 w-3.5" />
-              Terminer
+              {t('cb.stop')}
             </button>
           </span>
         </div>
@@ -75,7 +77,7 @@ export function CrisisBanner() {
         {/* Contre-mesures déployées */}
         {measures.length > 0 && (
           <div className="mt-2.5 flex flex-wrap items-center gap-1.5 border-t border-red-500/20 pt-2.5">
-            <span className="mr-1 text-xs font-semibold uppercase tracking-wider text-red-300">Contre-mesures :</span>
+            <span className="mr-1 text-xs font-semibold uppercase tracking-wider text-red-300">{t('cb.measures')}</span>
             {measures.map((m) => (
               <span
                 key={m}
@@ -90,7 +92,7 @@ export function CrisisBanner() {
               className="ml-auto flex items-center gap-1.5 rounded border border-sky-400/40 bg-sky-400/10 px-2.5 py-1 text-xs font-medium text-sky-300 hover:bg-sky-400/20"
             >
               <Download className="h-3.5 w-3.5" />
-              Exporter le rapport PDF
+              {t('cb.export')}
             </button>
           </div>
         )}

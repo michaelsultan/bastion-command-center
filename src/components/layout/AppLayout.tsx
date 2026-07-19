@@ -8,6 +8,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
   ChevronsUpDown,
+  Languages,
   LayoutDashboard,
   Megaphone,
   Radar,
@@ -29,6 +30,9 @@ import {
 import { useTenant } from '@/context/TenantContext'
 import { useCrisis, useEffectiveTenant } from '@/context/CrisisContext'
 import { useLiveAlerts } from '@/context/LiveAlertsContext'
+import { useLanguage } from '@/i18n/LanguageContext'
+import type { Lang } from '@/i18n/LanguageContext'
+import type { TranslationKey } from '@/i18n/en'
 import { CrisisBanner } from '@/components/CrisisBanner'
 import { TENANT_DATA, TENANT_ORDER } from '@/data'
 import type { ThreatLevel } from '@/data/types'
@@ -41,23 +45,23 @@ const THREAT_DOT: Record<ThreatLevel, string> = {
   CRITIQUE: 'bg-red-500',
 }
 
-const AGENCE_ITEMS = [{ to: '/agence', label: 'Vue agence', icon: Building2 }]
+const AGENCE_ITEMS = [{ to: '/agence', labelKey: 'nav.agency' as TranslationKey, icon: Building2 }]
 
 const NAV_ITEMS = [
-  { to: '/', label: 'Vue d’ensemble', icon: LayoutDashboard, end: true },
-  { to: '/securite', label: 'Sécurité', icon: ShieldCheck },
-  { to: '/veille', label: 'Veille & Réputation', icon: Radar },
-  { to: '/alertes', label: 'Alertes & Incidents', icon: Siren },
-  { to: '/contenu', label: 'Contenu & Campagne', icon: Megaphone, tag: 'Phase 2' },
-  { to: '/equipe', label: 'Équipe & Accès', icon: Users },
+  { to: '/', labelKey: 'nav.overview' as TranslationKey, icon: LayoutDashboard, end: true },
+  { to: '/securite', labelKey: 'nav.security' as TranslationKey, icon: ShieldCheck },
+  { to: '/veille', labelKey: 'nav.veille' as TranslationKey, icon: Radar },
+  { to: '/alertes', labelKey: 'nav.alertes' as TranslationKey, icon: Siren },
+  { to: '/contenu', labelKey: 'nav.contenu' as TranslationKey, icon: Megaphone, tagKey: 'nav.contenu.tag' as TranslationKey },
+  { to: '/equipe', labelKey: 'nav.equipe' as TranslationKey, icon: Users },
 ]
 
 type NavItemDef = {
   to: string
-  label: string
+  labelKey: TranslationKey
   icon: typeof LayoutDashboard
   end?: boolean
-  tag?: string
+  tagKey?: TranslationKey
 }
 
 function SectionLabel({ children, collapsed }: { children: ReactNode; collapsed: boolean }) {
@@ -77,11 +81,13 @@ function SectionLabel({ children, collapsed }: { children: ReactNode; collapsed:
 }
 
 function NavItemLink({ item, collapsed, activeAlerts }: { item: NavItemDef; collapsed: boolean; activeAlerts: number }) {
+  const { t } = useLanguage()
+  const label = t(item.labelKey)
   return (
     <NavLink
       to={item.to}
       end={item.end}
-      title={item.label}
+      title={label}
       className={({ isActive }) =>
         cn(
           'group flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
@@ -93,15 +99,15 @@ function NavItemLink({ item, collapsed, activeAlerts }: { item: NavItemDef; coll
       }
     >
       <item.icon className="h-[18px] w-[18px] shrink-0" />
-      <span className={cn('min-w-0 flex-1 truncate', collapsed ? 'hidden' : 'hidden lg:inline')}>{item.label}</span>
-      {item.tag && (
+      <span className={cn('min-w-0 flex-1 truncate', collapsed ? 'hidden' : 'hidden lg:inline')}>{label}</span>
+      {item.tagKey && (
         <span
           className={cn(
             'rounded border border-zinc-700 px-1 text-[9px] font-semibold uppercase tracking-wide text-zinc-500',
             collapsed ? 'hidden' : 'hidden lg:inline',
           )}
         >
-          {item.tag}
+          {t(item.tagKey)}
         </span>
       )}
       {item.to === '/alertes' && activeAlerts > 0 && (
@@ -120,23 +126,25 @@ function NavItemLink({ item, collapsed, activeAlerts }: { item: NavItemDef; coll
 }
 
 function LiveClock() {
+  const { lang, t } = useLanguage()
   const [now, setNow] = useState(() => new Date())
   useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 1000)
-    return () => clearInterval(t)
+    const timer = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(timer)
   }, [])
   return (
     <div className="hidden text-right md:block">
       <p className="font-mono text-sm font-medium tabular-nums text-zinc-200">
-        {now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+        {now.toLocaleTimeString(lang === 'fr' ? 'fr-FR' : 'en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
       </p>
-      <p className="text-[11px] text-zinc-500">dimanche 19 juillet 2026</p>
+      <p className="text-[11px] text-zinc-500">{t('nav.clock.date')}</p>
     </div>
   )
 }
 
 function TenantSwitcher() {
   const { tenant, tenantId, setTenant } = useTenant()
+  const { lang, t } = useLanguage()
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -156,11 +164,11 @@ function TenantSwitcher() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-80 border-zinc-700 bg-zinc-900 text-zinc-100">
         <DropdownMenuLabel className="text-xs font-normal text-zinc-500">
-          Espace de travail — sélection du tenant
+          {t('nav.workspace')}
         </DropdownMenuLabel>
         <DropdownMenuSeparator className="bg-zinc-800" />
         {TENANT_ORDER.map((id) => {
-          const t = TENANT_DATA[id]
+          const data = TENANT_DATA[lang][id]
           const active = id === tenantId
           return (
             <DropdownMenuItem
@@ -168,26 +176,58 @@ function TenantSwitcher() {
               onClick={() => setTenant(id)}
               className="flex cursor-pointer items-start gap-2.5 px-2 py-2.5 focus:bg-zinc-800 focus:text-zinc-100"
             >
-              <span className={cn('mt-1.5 h-2 w-2 shrink-0 rounded-full', THREAT_DOT[t.threat.level])} />
+              <span className={cn('mt-1.5 h-2 w-2 shrink-0 rounded-full', THREAT_DOT[data.threat.level])} />
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium">{t.meta.name}</p>
-                <p className="truncate text-xs text-zinc-500">{t.meta.subtitle}</p>
-                <p className="truncate text-[11px] text-zinc-600">{t.meta.detail}</p>
+                <p className="text-sm font-medium">{data.meta.name}</p>
+                <p className="truncate text-xs text-zinc-500">{data.meta.subtitle}</p>
+                <p className="truncate text-[11px] text-zinc-600">{data.meta.detail}</p>
               </div>
               {active && <Check className="mt-1 h-4 w-4 shrink-0 text-sky-400" />}
             </DropdownMenuItem>
           )
         })}
         <DropdownMenuSeparator className="bg-zinc-800" />
-        <p className="px-2 py-1.5 text-[11px] text-zinc-600">Isolation stricte des données par tenant — Bastion Agency</p>
+        <p className="px-2 py-1.5 text-[11px] text-zinc-600">{t('nav.workspace.isolation')}</p>
       </DropdownMenuContent>
     </DropdownMenu>
+  )
+}
+
+function LangSwitcher() {
+  const { lang, setLang, t } = useLanguage()
+  const options: { value: Lang; label: string }[] = [
+    { value: 'en', label: 'EN' },
+    { value: 'fr', label: 'FR' },
+  ]
+  return (
+    <div
+      className="flex items-center rounded-md border border-zinc-700 bg-zinc-900 p-0.5"
+      role="group"
+      aria-label={t('nav.lang.switch')}
+      title={t('nav.lang.switch')}
+    >
+      <Languages className="mx-1.5 h-3.5 w-3.5 text-zinc-500" />
+      {options.map((opt) => (
+        <button
+          key={opt.value}
+          onClick={() => setLang(opt.value)}
+          aria-pressed={lang === opt.value}
+          className={cn(
+            'rounded px-2 py-1 text-[11px] font-semibold tracking-wide transition-colors',
+            lang === opt.value ? 'bg-sky-400/15 text-sky-400' : 'text-zinc-500 hover:text-zinc-200',
+          )}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
   )
 }
 
 export function AppLayout() {
   const { tenant } = useTenant()
   const effTenant = useEffectiveTenant()
+  const { t } = useLanguage()
   const { active: crisisActive, start: startCrisis, stop: stopCrisis } = useCrisis()
   const { countsForTenant } = useLiveAlerts()
   const [collapsed, setCollapsed] = useState(false)
@@ -211,16 +251,16 @@ export function AppLayout() {
           </div>
           <div className={cn('min-w-0', collapsed ? 'hidden' : 'hidden lg:block')}>
             <p className="text-sm font-bold tracking-[0.18em] text-zinc-50">BASTION</p>
-            <p className="truncate text-[10px] leading-tight text-zinc-500">Centre de commandement digital</p>
+            <p className="truncate text-[10px] leading-tight text-zinc-500">{t('app.title').replace('Bastion — ', '')}</p>
           </div>
         </div>
 
         <nav className="flex-1 space-y-1 overflow-y-auto p-2">
-          <SectionLabel collapsed={collapsed}>Agence</SectionLabel>
+          <SectionLabel collapsed={collapsed}>{t('nav.section.agency')}</SectionLabel>
           {AGENCE_ITEMS.map((item) => (
             <NavItemLink key={item.to} item={item} collapsed={collapsed} activeAlerts={activeAlertsTotal} />
           ))}
-          <SectionLabel collapsed={collapsed}>Espace client — {tenant.meta.name}</SectionLabel>
+          <SectionLabel collapsed={collapsed}>{t('nav.section.client', { name: tenant.meta.name })}</SectionLabel>
           {NAV_ITEMS.map((item) => (
             <NavItemLink key={item.to} item={item} collapsed={collapsed} activeAlerts={activeAlertsTotal} />
           ))}
@@ -233,13 +273,13 @@ export function AppLayout() {
               'hidden w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-zinc-500 hover:bg-zinc-800/70 hover:text-zinc-200 lg:flex',
               collapsed && 'justify-center px-0',
             )}
-            title={collapsed ? 'Déplier le menu' : 'Replier le menu'}
+            title={collapsed ? t('nav.expand') : t('nav.collapse')}
           >
             {collapsed ? <ChevronsRight className="h-4 w-4" /> : <ChevronsLeft className="h-4 w-4" />}
-            {!collapsed && <span>Replier</span>}
+            {!collapsed && <span>{t('nav.collapse')}</span>}
           </button>
           <p className={cn('px-3 py-2 text-[10px] text-zinc-600', collapsed && 'hidden')}>
-            Bastion v0.9 — prototype de démonstration
+            {t('nav.version')}
           </p>
         </div>
       </aside>
@@ -252,6 +292,7 @@ export function AppLayout() {
               <TenantSwitcher />
             </div>
             <div className="ml-auto flex items-center gap-4">
+              <LangSwitcher />
               <Button
                 variant="outline"
                 size="sm"
@@ -262,19 +303,19 @@ export function AppLayout() {
                 )}
               >
                 <Siren className={cn('mr-2 h-4 w-4', crisisActive && 'animate-pulse')} />
-                <span className="hidden sm:inline">{crisisActive ? 'Terminer la simulation' : 'Simuler une crise'}</span>
+                <span className="hidden sm:inline">{crisisActive ? t('nav.crisis.stop') : t('nav.crisis.start')}</span>
               </Button>
               <div className="hidden items-center gap-2 lg:flex">
                 <span className="relative flex h-2 w-2">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-60" />
                   <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
                 </span>
-                <span className="text-xs text-zinc-400">Dernière synchro il y a 2 min</span>
+                <span className="text-xs text-zinc-400">{t('nav.sync')}</span>
               </div>
               <div className="hidden h-6 w-px bg-zinc-800 lg:block" />
               <LiveClock />
               <div className="hidden h-6 w-px bg-zinc-800 md:block" />
-              <button className="relative rounded-md p-2 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100" title="Notifications">
+              <button className="relative rounded-md p-2 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100" title={t('nav.notifications')}>
                 <Bell className="h-[18px] w-[18px]" />
                 {criticalAlertsTotal > 0 && (
                   <span className="absolute right-1 top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-red-500 px-0.5 text-[9px] font-bold text-white">
