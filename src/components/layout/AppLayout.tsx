@@ -12,11 +12,11 @@ import {
   LayoutDashboard,
   Megaphone,
   Radar,
-  Shield,
   ShieldCheck,
   Siren,
   Users,
 } from 'lucide-react'
+import logo55Labs from '@/assets/55labs-logo-white.png'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import {
@@ -246,9 +246,7 @@ export function AppLayout() {
         )}
       >
         <div className={cn('flex items-center gap-3 border-b border-zinc-800 px-4 py-4', collapsed && 'justify-center px-2')}>
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-sky-400/30 bg-sky-400/10">
-            <Shield className="h-5 w-5 text-sky-400" />
-          </div>
+          <img src={logo55Labs} alt="55 LABS" className="h-8 w-auto shrink-0" />
           <div className={cn('min-w-0', collapsed ? 'hidden' : 'hidden lg:block')}>
             <p className="text-sm font-bold tracking-[0.18em] text-zinc-50">BASTION</p>
             <p className="truncate text-[10px] leading-tight text-zinc-500">{t('app.title').replace('Bastion — ', '')}</p>
@@ -278,7 +276,10 @@ export function AppLayout() {
             {collapsed ? <ChevronsRight className="h-4 w-4" /> : <ChevronsLeft className="h-4 w-4" />}
             {!collapsed && <span>{t('nav.collapse')}</span>}
           </button>
-          <p className={cn('px-3 py-2 text-[10px] text-zinc-600', collapsed && 'hidden')}>
+          <p className={cn('px-3 pt-2 text-[10px] font-medium text-zinc-500', collapsed && 'hidden')}>
+            {t('app.by')}
+          </p>
+          <p className={cn('px-3 pb-2 text-[10px] text-zinc-600', collapsed && 'hidden')}>
             {t('nav.version')}
           </p>
         </div>

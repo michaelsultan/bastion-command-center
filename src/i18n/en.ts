@@ -5,6 +5,7 @@
 
 export const en = {
   'app.title': 'Bastion — Digital Command Center',
+  'app.by': 'by 55 LABS',
 
   // Commun
   'common.demoData': 'demo data',

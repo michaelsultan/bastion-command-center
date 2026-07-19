@@ -6,6 +6,7 @@ import type { TranslationKey } from './en'
 
 export const fr: Record<TranslationKey, string> = {
   'app.title': 'Bastion — Centre de commandement digital',
+  'app.by': 'par 55 LABS',
 
   // Commun
   'common.demoData': 'données de démonstration',
